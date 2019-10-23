@@ -22,12 +22,13 @@ resource "random_id" "vm-sa" {
     vm_hostname = "${var.vm_hostname}"
   }
 
-  byte_length = 6
+  byte_length = 7
+  count = "${var.nb_instances}"
 }
 
 resource "azurerm_storage_account" "vm-sa" {
   count                    = "${var.boot_diagnostics == "true" ? 1 : 0}"
-  name                     = "bootdiag${lower(random_id.vm-sa.hex)}"
+  name                     = "bootdiag${lower(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
   resource_group_name      = "${azurerm_resource_group.vm.name}"
   location                 = "${var.location}"
   account_tier             = "${element(split("_", var.boot_diagnostics_sa_type),0)}"
@@ -37,7 +38,7 @@ resource "azurerm_storage_account" "vm-sa" {
 
 resource "azurerm_virtual_machine" "vm-linux" {
   count                         = "${!contains(list("${var.vm_os_simple}","${var.vm_os_offer}"), "Windows") && var.is_windows_image != "true" && var.data_disk == "false" ? var.nb_instances : 0}"
-  name                          = "${var.vm_hostname}${count.index}"
+  name                          = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
   location                      = "${var.location}"
   resource_group_name           = "${azurerm_resource_group.vm.name}"
   availability_set_id           = "${azurerm_availability_set.vm.id}"
@@ -54,14 +55,14 @@ resource "azurerm_virtual_machine" "vm-linux" {
   }
 
   storage_os_disk {
-    name              = "osdisk-${var.vm_hostname}-${count.index}"
+    name              = "osdisk-${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     create_option     = "FromImage"
     caching           = "ReadWrite"
     managed_disk_type = "${var.storage_account_type}"
   }
 
   os_profile {
-    computer_name  = "${var.vm_hostname}${count.index}"
+    computer_name  = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.admin_password}"
     custom_data    = "${var.custom_data}"
@@ -86,7 +87,7 @@ resource "azurerm_virtual_machine" "vm-linux" {
 
 resource "azurerm_virtual_machine" "vm-linux-with-datadisk" {
   count                         = "${!contains(list("${var.vm_os_simple}","${var.vm_os_offer}"), "Windows")  && var.is_windows_image != "true"  && var.data_disk == "true" ? var.nb_instances : 0}"
-  name                          = "${var.vm_hostname}${count.index}"
+  name                          = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
   location                      = "${var.location}"
   resource_group_name           = "${azurerm_resource_group.vm.name}"
   availability_set_id           = "${azurerm_availability_set.vm.id}"
@@ -103,14 +104,14 @@ resource "azurerm_virtual_machine" "vm-linux-with-datadisk" {
   }
 
   storage_os_disk {
-    name              = "osdisk-${var.vm_hostname}-${count.index}"
+    name              = "osdisk-${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     create_option     = "FromImage"
     caching           = "ReadWrite"
     managed_disk_type = "${var.storage_account_type}"
   }
 
   storage_data_disk {
-    name              = "datadisk-${var.vm_hostname}-${count.index}"
+    name              = "datadisk-${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     create_option     = "Empty"
     lun               = 0
     disk_size_gb      = "${var.data_disk_size_gb}"
@@ -118,7 +119,7 @@ resource "azurerm_virtual_machine" "vm-linux-with-datadisk" {
   }
 
   os_profile {
-    computer_name  = "${var.vm_hostname}${count.index}"
+    computer_name  = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.admin_password}"
     custom_data    = "${var.custom_data}"
@@ -143,7 +144,7 @@ resource "azurerm_virtual_machine" "vm-linux-with-datadisk" {
 
 resource "azurerm_virtual_machine" "vm-windows" {
   count                         = "${((var.is_windows_image == "true" || contains(list("${var.vm_os_simple}","${var.vm_os_offer}"), "Windows")) && var.data_disk == "false") ? var.nb_instances : 0}"
-  name                          = "${var.vm_hostname}${count.index}"
+  name                          = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
   location                      = "${var.location}"
   resource_group_name           = "${azurerm_resource_group.vm.name}"
   availability_set_id           = "${azurerm_availability_set.vm.id}"
@@ -160,14 +161,14 @@ resource "azurerm_virtual_machine" "vm-windows" {
   }
 
   storage_os_disk {
-    name              = "osdisk-${var.vm_hostname}-${count.index}"
+    name              = "osdisk-${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     create_option     = "FromImage"
     caching           = "ReadWrite"
     managed_disk_type = "${var.storage_account_type}"
   }
 
   os_profile {
-    computer_name  = "${var.vm_hostname}${count.index}"
+    computer_name  = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.admin_password}"
   }
@@ -186,7 +187,7 @@ resource "azurerm_virtual_machine" "vm-windows" {
 
 resource "azurerm_virtual_machine" "vm-windows-with-datadisk" {
   count                         = "${(var.is_windows_image == "true" || contains(list("${var.vm_os_simple}","${var.vm_os_offer}"), "Windows")) && var.data_disk == "true" ? var.nb_instances : 0}"
-  name                          = "${var.vm_hostname}${count.index}"
+  name                          = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
   location                      = "${var.location}"
   resource_group_name           = "${azurerm_resource_group.vm.name}"
   availability_set_id           = "${azurerm_availability_set.vm.id}"
@@ -203,14 +204,14 @@ resource "azurerm_virtual_machine" "vm-windows-with-datadisk" {
   }
 
   storage_os_disk {
-    name              = "osdisk-${var.vm_hostname}-${count.index}"
+    name              = "osdisk-${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     create_option     = "FromImage"
     caching           = "ReadWrite"
     managed_disk_type = "${var.storage_account_type}"
   }
 
   storage_data_disk {
-    name              = "datadisk-${var.vm_hostname}-${count.index}"
+    name              = "datadisk-${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     create_option     = "Empty"
     lun               = 0
     disk_size_gb      = "${var.data_disk_size_gb}"
@@ -218,7 +219,7 @@ resource "azurerm_virtual_machine" "vm-windows-with-datadisk" {
   }
 
   os_profile {
-    computer_name  = "${var.vm_hostname}${count.index}"
+    computer_name  = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.admin_password}"
   }
@@ -247,10 +248,10 @@ resource "azurerm_availability_set" "vm" {
 
 resource "azurerm_public_ip" "vm" {
   count                        = "${var.nb_public_ip}"
-  name                         = "${var.vm_hostname}-${count.index}-publicIP"
+  name                         = "${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}-publicIP"
   location                     = "${var.location}"
   resource_group_name          = "${azurerm_resource_group.vm.name}"
-  public_ip_address_allocation = "${var.public_ip_address_allocation}"
+  allocation_method            = "${var.allocation_method}"
   domain_name_label            = "${element(var.public_ip_dns, count.index)}"
   tags                         = "${var.tags}"
 }
@@ -278,7 +279,7 @@ resource "azurerm_network_security_group" "vm" {
 
 resource "azurerm_network_interface" "vm" {
   count                         = "${var.nb_instances}"
-  name                          = "nic-${var.vm_hostname}-${count.index}"
+  name                          = "nic-${var.vm_hostname}${upper(substr((element(random_id.vm-sa.*.hex, count.index)),0,13))}"
   location                      = "${azurerm_resource_group.vm.location}"
   resource_group_name           = "${azurerm_resource_group.vm.name}"
   network_security_group_id     = "${azurerm_network_security_group.vm.id}"
